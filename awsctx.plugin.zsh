@@ -1,4 +1,4 @@
-# AWS Profile Manager - A kubectx-like tool for AWS profiles
+# AWS Profile Manager - A kubectx-like tool for AWS profiles with persistence
 # Compatible with denysdovhan/spaceship-zsh-theme and Antidote
 # Usage:
 #   awsctx                    # Interactive menu to select profiles
@@ -10,6 +10,9 @@
 # Cache for profiles to improve performance
 typeset -g _AWSCTX_PROFILES_CACHE
 typeset -g _AWSCTX_CACHE_TIME=0
+
+# File to store current profile for persistence
+typeset -g _AWSCTX_CURRENT_PROFILE_FILE="$HOME/.awsctx_current"
 
 # Global helper function to get all available profiles with caching
 _awsctx_get_profiles() {
@@ -111,6 +114,16 @@ _awsctx_display_menu() {
     done
 }
 
+# Function to load the current profile on shell startup
+_awsctx_load_current_profile() {
+    if [[ -f "$_AWSCTX_CURRENT_PROFILE_FILE" ]]; then
+        local stored_profile=$(cat "$_AWSCTX_CURRENT_PROFILE_FILE" 2>/dev/null)
+        if [[ -n "$stored_profile" ]] && [[ -z "$AWS_PROFILE" ]]; then
+            export AWS_PROFILE="$stored_profile"
+        fi
+    fi
+}
+
 # Main function
 awsctx() {
     local aws_config_file="${AWS_CONFIG_FILE:-$HOME/.aws/config}"
@@ -151,6 +164,9 @@ awsctx() {
         # Set new profile
         export AWS_PROFILE="$profile"
         
+        # Save to persistent file
+        echo "$profile" > "$_AWSCTX_CURRENT_PROFILE_FILE"
+        
         # Clear profile cache to ensure fresh data
         _AWSCTX_PROFILES_CACHE=""
         _AWSCTX_CACHE_TIME=0
@@ -169,12 +185,14 @@ Usage:
   awsctx -                  Switch to previous profile
   awsctx -c, --current      Show current profile
   awsctx -h, --help         Show this help message
+  awsctx --clear-persistent Clear persistent profile setting
 
 Examples:
   awsctx                    # Interactive menu
   awsctx production         # Switch to 'production' profile
   awsctx -                  # Switch back to previous profile
   awsctx -c                 # Show current profile
+  awsctx --clear-persistent # Clear persistent profile
 EOF
     }
     
@@ -279,6 +297,14 @@ EOF
         echo $(_get_current_profile)
     elif [[ "$1" == "-h" || "$1" == "--help" ]]; then
         _show_help
+    elif [[ "$1" == "--clear-persistent" ]]; then
+        if [[ -f "$_AWSCTX_CURRENT_PROFILE_FILE" ]]; then
+            rm "$_AWSCTX_CURRENT_PROFILE_FILE"
+            unset AWS_PROFILE
+            echo "Cleared persistent AWS profile setting."
+        else
+            echo "No persistent profile setting found."
+        fi
     elif [[ "$1" == "-" ]]; then
         if [[ -f "$previous_profile_file" ]]; then
             local previous_profile=$(cat "$previous_profile_file")
@@ -324,6 +350,9 @@ _awsctx() {
 if command -v compdef >/dev/null 2>&1; then
     compdef _awsctx awsctx
 fi
+
+# Load current profile on shell startup
+_awsctx_load_current_profile
 
 # Spaceship ZSH Theme Integration
 # This adds AWS profile support to Spaceship prompt

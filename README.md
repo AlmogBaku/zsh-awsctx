@@ -2,8 +2,6 @@
 
 A `kubectx`-like tool for managing AWS profiles in Zsh. Switch between AWS profiles quickly and efficiently with an interactive menu or direct commands.
 
-![AWS Profile Manager Demo](https://via.placeholder.com/600x200/2d3748/ffffff?text=awsctx+Demo)
-
 ## Features
 
 - 🚀 **Fast profile switching** with caching (60-second TTL)
