@@ -37,8 +37,10 @@ _awsctx_get_profiles() {
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
             
             # Match [profile profile-name] format only
-            if [[ "$line" =~ ^\[profile[[:space:]]+([^][:space:]]+)[[:space:]]*\] ]]; then
-                local profile_name="${match[1]}"
+            if [[ "$line" == \[profile\ * ]]; then
+                # Extract profile name by removing [profile and ]
+                local stripped="${line#\[profile }"
+                local profile_name="${stripped%\]}"
                 # Only add non-empty profile names
                 if [[ -n "$profile_name" ]]; then
                     profiles+=("$profile_name")
@@ -55,10 +57,10 @@ _awsctx_get_profiles() {
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
             
             # Match [profile-name] format, excluding special sections
-            if [[ "$line" =~ ^\[([^][:space:]]+)[[:space:]]*\] ]]; then
+            if [[ "$line" =~ ^\[([^]]+)[[:space:]]*\] ]]; then
                 local profile_name="${match[1]}"
                 # Exclude sso-session and other special sections, and don't duplicate default
-                if [[ -n "$profile_name" && "$profile_name" != "sso-session"* && "$profile_name" != "default" ]]; then
+                if [[ -n "$profile_name" && "$profile_name" != sso-session* && "$profile_name" != "default" ]]; then
                     profiles+=("$profile_name")
                 fi
             fi
